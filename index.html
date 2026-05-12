@@ -167,7 +167,7 @@ const SUPABASE_URL = 'https://fbtoiqhdmlzdngeewiaq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZidG9pcWhkbWx6ZG5nZWV3aWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTMwMjEsImV4cCI6MjA5NDEyOTAyMX0.IYTtfAceQvlDxRHJJ8tGNM83XRu1DZTbdSYgTS4URBE';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const LAWYERS = ['陳大明','林美玲','王志豪','張雅婷'];
+const LAWYERS = ['林律','阮律','葛律'];
 const TYPES = ['民事','刑事','行政','家事','商事'];
 const DIFF_LABEL = {easy:'簡單',mid:'普通',hard:'複雜'};
 const DIFF_PTS = {easy:1,mid:1.5,hard:2};
@@ -502,7 +502,7 @@ function renderAssignView() {
     const isL = l === suggested;
     const barPct = Math.round((p / mx) * 100);
     const lCases = allCases.filter(c => c.status==='active' && c.lawyer===l && c.complexity);
-    const lawyerColors = {'陳大明':['#E6F1FB','#0C447C'],'林美玲':['#E1F5EE','#085041'],'王志豪':['#FAEEDA','#633806'],'張雅婷':['#EEEDFE','#3C3489']};
+    const lawyerColors = {'林律':['#E6F1FB','#0C447C'],'阮律':['#E1F5EE','#085041'],'葛律':['#FAEEDA','#633806']};
     const [bg, fg] = lawyerColors[l] || ['#F1EFE8','#444441'];
     return `<div class="burden-card${isL?' lightest':''}">
       <div class="avatar" style="background:${bg};color:${fg}">${l[0]}</div>
@@ -540,7 +540,7 @@ function renderAssignView() {
   const tbody = document.getElementById('assign-log');
   if (!log.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty">本月尚無分案紀錄</div></td></tr>`; }
   else {
-    const lawyerColors = {'陳大明':['#E6F1FB','#0C447C'],'林美玲':['#E1F5EE','#085041'],'王志豪':['#FAEEDA','#633806'],'張雅婷':['#EEEDFE','#3C3489']};
+    const lawyerColors = {'林律':['#E6F1FB','#0C447C'],'阮律':['#E1F5EE','#085041'],'葛律':['#FAEEDA','#633806']};
     tbody.innerHTML = [...log].reverse().map((entry, i) => {
       const [bg, fg] = lawyerColors[entry.lawyer] || ['#F1EFE8','#444441'];
       return `<tr>
