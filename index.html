@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>律師事務所管理系統</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#2c2c2a;font-size:14px}
+.app{max-width:900px;margin:0 auto;padding:1.5rem 1rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px}
+.topbar h1{font-size:18px;font-weight:600;color:#2c2c2a;display:flex;align-items:center;gap:8px}
+.nav{display:flex;gap:4px;background:#e8e6df;border-radius:8px;padding:3px}
+.nav-btn{font-size:13px;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;background:none;color:#5f5e5a;transition:all .15s}
+.nav-btn.active{background:#fff;color:#2c2c2a;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem}
+.stat{background:#e8e6df;border-radius:8px;padding:10px 12px}
+.stat-label{font-size:11px;color:#888780;margin-bottom:2px}
+.stat-num{font-size:22px;font-weight:600;color:#2c2c2a}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center}
+.controls input[type=text]{flex:1;min-width:140px;font-size:13px;padding:7px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;outline:none}
+.controls input[type=text]:focus{border-color:#185FA5}
+.controls select{font-size:13px;padding:7px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;outline:none}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.col{background:#e8e6df;border-radius:12px;padding:10px}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.col-title{font-size:13px;font-weight:600;color:#2c2c2a;display:flex;align-items:center;gap:5px}
+.col-badge{font-size:11px;padding:2px 7px;border-radius:99px;font-weight:500}
+.badge-pending{background:#FAEEDA;color:#633806}
+.badge-active{background:#E6F1FB;color:#0C447C}
+.badge-closed{background:#EAF3DE;color:#27500A}
+.add-btn{cursor:pointer;color:#888780;background:none;border:none;font-size:20px;padding:0 2px;line-height:1;transition:color .15s}
+.add-btn:hover{color:#2c2c2a}
+.subtabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
+.subtab{font-size:11px;padding:2px 7px;border-radius:99px;border:1px solid #d3d1c7;cursor:pointer;color:#888780;background:#fff;transition:all .15s}
+.subtab.active{background:#185FA5;color:#fff;border-color:#185FA5}
+.card{background:#fff;border:1px solid #e8e6df;border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:#b4b2a9}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.card-name{font-size:13px;font-weight:600;color:#2c2c2a}
+.card-num{font-size:11px;color:#888780}
+.card-meta{font-size:11px;color:#888780;margin-bottom:4px}
+.card-row{display:flex;justify-content:space-between;align-items:center;margin-top:5px;gap:4px;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 7px;border-radius:99px}
+.tag-blue{background:#E6F1FB;color:#0C447C}
+.tag-amber{background:#FAEEDA;color:#633806}
+.tag-teal{background:#E1F5EE;color:#085041}
+.tag-red{background:#FCEBEB;color:#791F1F}
+.tag-gray{background:#F1EFE8;color:#444441}
+.lawyer-label{font-size:11px;color:#888780}
+.date-warn{color:#A32D2D;font-size:11px}
+.date-ok{color:#888780;font-size:11px}
+.empty{text-align:center;color:#888780;font-size:13px;padding:20px 0}
+.loading{text-align:center;color:#888780;font-size:13px;padding:40px 0}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding-top:40px;padding:40px 1rem 1rem}
+.modal{background:#fff;border-radius:12px;border:1px solid #d3d1c7;padding:20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#2c2c2a}
+.form-row{margin-bottom:10px}
+.form-row label{display:block;font-size:11px;color:#888780;margin-bottom:3px;font-weight:500}
+.form-row input,.form-row select,.form-row textarea{width:100%;font-size:13px;padding:7px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;outline:none}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:#185FA5}
+.form-row textarea{resize:vertical;min-height:70px;line-height:1.5}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn{padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid #d3d1c7;background:#fff;color:#2c2c2a;transition:all .15s}
+.btn:hover{background:#f1efe8}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
+.btn-primary:hover{background:#0C447C}
+.btn-danger{background:#FCEBEB;color:#791F1F;border-color:#F09595}
+.btn-cancel{background:#f1efe8;color:#888780;border-color:#d3d1c7}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.detail-item label{font-size:11px;color:#888780;display:block;margin-bottom:2px;font-weight:500}
+.detail-item span{font-size:13px;color:#2c2c2a}
+.detail-section{border-top:1px solid #e8e6df;padding-top:10px;margin-top:10px}
+.section-label{font-size:11px;color:#888780;margin-bottom:5px;font-weight:500}
+.multi-check{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.multi-check label{display:flex;align-items:center;gap:5px;font-size:12px;color:#2c2c2a;cursor:pointer;padding:4px 10px;border:1px solid #d3d1c7;border-radius:99px;background:#fff;transition:all .15s;user-select:none}
+.multi-check label.checked{background:#E6F1FB;border-color:#185FA5;color:#0C447C}
+.multi-check input[type=checkbox]{display:none}
+.dates-grid{display:grid;gap:6px;margin-top:6px}
+.date-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.date-row-label{color:#888780;width:80px;flex-shrink:0;font-size:11px}
+.date-row input{font-size:12px;padding:5px 8px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;flex:1;outline:none}
+.pill{font-size:11px;padding:2px 6px;border-radius:99px}
+.pill-easy{background:#E1F5EE;color:#085041}
+.pill-mid{background:#E6F1FB;color:#0C447C}
+.pill-hard{background:#FAEEDA;color:#633806}
+.burden-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
+.burden-card{background:#fff;border:1px solid #e8e6df;border-radius:12px;padding:12px;transition:border-color .15s}
+.burden-card.lightest{border:2px solid #1D9E75}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-bottom:8px}
+.bar-wrap{height:5px;background:#f1efe8;border-radius:3px;overflow:hidden;margin:6px 0}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.next-badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#085041;margin-top:5px;display:inline-block}
+.suggest-pill{display:flex;align-items:center;gap:6px;background:#E6F1FB;color:#0C447C;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px}
+.month-reset{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.btn-reset{font-size:12px;color:#888780;background:none;border:1px solid #d3d1c7;border-radius:8px;padding:5px 12px;cursor:pointer}
+.btn-reset:hover{color:#2c2c2a}
+.assign-box{background:#fff;border:1px solid #e8e6df;border-radius:12px;padding:14px;margin-bottom:1.25rem}
+.log-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.log-table th{padding:8px 10px;text-align:left;font-weight:500;color:#888780;border-bottom:1px solid #e8e6df}
+.log-table td{padding:7px 10px;border-bottom:1px solid #e8e6df;color:#2c2c2a}
+.log-table tr:last-child td{border-bottom:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;font-size:13px;padding:10px 20px;border-radius:99px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>⚖️ 律師事務所管理系統</h1>
+    <div class="nav">
+      <button class="nav-btn active" id="tab-board" onclick="setTab('board')">📋 案件看板</button>
+      <button class="nav-btn" id="tab-assign" onclick="setTab('assign')">⚖️ 分案系統</button>
+    </div>
+  </div>
+  <div class="stats" id="stats-row"><div class="loading">載入中…</div></div>
+  <div id="view-board">
+    <div class="controls">
+      <input type="text" id="search" placeholder="🔍 搜尋當事人、案號、律師…" oninput="renderBoard()">
+      <select id="filter-lawyer" onchange="renderBoard()"><option value="">全部律師</option></select>
+      <select id="filter-type" onchange="renderBoard()"><option value="">全部案由</option></select>
+    </div>
+    <div class="board" id="board"><div class="loading">載入中…</div></div>
+  </div>
+  <div id="view-assign" style="display:none">
+    <div class="month-reset">
+      <div style="font-size:13px;color:#888780" id="month-label"></div>
+      <button class="btn-reset" onclick="resetMonth()">↺ 重置本月</button>
+    </div>
+    <div class="burden-grid" id="burden-grid"></div>
+    <div class="assign-box">
+      <div style="font-size:13px;font-weight:600;color:#2c2c2a;margin-bottom:10px">＋ 分配案件</div>
+      <div id="assign-suggest"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-row" style="margin:0;flex:1;min-width:140px"><label>選擇待分案案件</label>
+          <select id="f-pick-case"></select>
+        </div>
+        <div class="form-row" style="margin:0"><label>複雜度</label>
+          <select id="f-diff" onchange="renderAssignView()">
+            <option value="easy">簡單（1 點）</option>
+            <option value="mid" selected>普通（1.5 點）</option>
+            <option value="hard">複雜（2 點）</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0"><label>指定律師</label>
+          <select id="f-assign-lawyer"><option value="">自動推薦</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="doAssign()">分案</button>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:#888780;margin-bottom:8px">本月分案紀錄</div>
+    <div style="background:#fff;border:1px solid #e8e6df;border-radius:12px;overflow:hidden">
+      <table class="log-table">
+        <thead><tr><th style="width:30%">案件</th><th style="width:18%">複雜度</th><th style="width:24%">承辦律師</th><th style="width:20%">時間</th><th style="width:8%"></th></tr></thead>
+        <tbody id="assign-log"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="modal-container"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://fbtoiqhdmlzdngeewiaq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZidG9pcWhkbWx6ZG5nZWV3aWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTMwMjEsImV4cCI6MjA5NDEyOTAyMX0.IYTtfAceQvlDxRHJJ8tGNM83XRu1DZTbdSYgTS4URBE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const LAWYERS = ['陳大明','林美玲','王志豪','張雅婷'];
+const TYPES = ['民事','刑事','行政','家事','商事'];
+const DIFF_LABEL = {easy:'簡單',mid:'普通',hard:'複雜'};
+const DIFF_PTS = {easy:1,mid:1.5,hard:2};
+const DIFF_CLS = {easy:'pill-easy',mid:'pill-mid',hard:'pill-hard'};
+const TYPE_CLS = {'民事':'tag-blue','刑事':'tag-red','行政':'tag-amber','家事':'tag-teal','商事':'tag-gray'};
+const ALL_SUBS = ['待撰狀','待庭期','待判決'];
+const SUB_DATE_LABEL = {'待撰狀':'預計出狀日','待庭期':'下次開庭日','待判決':'判決日期'};
+const SUB_TAG_CLS = {'待撰狀':'tag-amber','待庭期':'tag-blue','待判決':'tag-teal'};
+const now = new Date();
+const MONTH_KEY = `assign_${now.getFullYear()}_${now.getMonth()}`;
+
+let allCases = [];
+let currentTab = 'board';
+let filterSub = '全部';
+let showModal = null;
+let showDetail = null;
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+function fmtPts(n) { return n % 1 === 0 ? String(n) : n.toFixed(1); }
+function fmtDate(d) { return d ? d.replace(/-/g, '/') : null; }
+function isUrgent(d) { if (!d) return false; const diff = (new Date(d) - new Date()) / 86400000; return diff >= 0 && diff <= 7; }
+function fmtTime(ts) { const d = new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function loadLog() { try { return JSON.parse(localStorage.getItem(MONTH_KEY) || '[]'); } catch(e) { return []; } }
+function saveLog(log) { try { localStorage.setItem(MONTH_KEY, JSON.stringify(log)); } catch(e) {} }
+
+function getLawyerPts() {
+  const pts = {}; LAWYERS.forEach(l => pts[l] = 0);
+  allCases.filter(c => c.status === 'active' && c.lawyer && c.complexity).forEach(c => {
+    if (pts[c.lawyer] !== undefined) pts[c.lawyer] += DIFF_PTS[c.complexity];
+  });
+  return pts;
+}
+function suggestedLawyer(pts) { return LAWYERS.reduce((a, b) => pts[a] <= pts[b] ? a : b); }
+
+async function loadCases() {
+  const { data, error } = await sb.from('cases').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); toast('載入失敗，請重新整理'); return; }
+  allCases = (data || []).map(c => ({
+    ...c,
+    subs: c.subs || [],
+    dates: c.dates || {},
+    court_notes: c.court_notes || '',
+    call_log: c.call_log || '',
+  }));
+  render();
+}
+
+async function createCase(data) {
+  const { error } = await sb.from('cases').insert([data]);
+  if (error) { toast('儲存失敗'); return false; }
+  toast('案件已新增'); await loadCases(); return true;
+}
+
+async function updateCase(id, data) {
+  const { error } = await sb.from('cases').update(data).eq('id', id);
+  if (error) { toast('更新失敗'); return false; }
+  toast('已儲存'); await loadCases(); return true;
+}
+
+async function deleteCase(id) {
+  if (!confirm('確定刪除此案件？')) return;
+  const { error } = await sb.from('cases').delete().eq('id', id);
+  if (error) { toast('刪除失敗'); return; }
+  toast('已刪除'); showDetail = null; await loadCases();
+}
+
+function getCardDateInfo(c) {
+  const priority = ['待庭期','待撰狀','待判決'];
+  for (const s of priority) {
+    if ((c.subs || []).includes(s) && c.dates && c.dates[s]) return { label: SUB_DATE_LABEL[s], date: c.dates[s], sub: s };
+  }
+  return null;
+}
+
+function setTab(t) {
+  currentTab = t;
+  document.getElementById('tab-board').className = 'nav-btn' + (t === 'board' ? ' active' : '');
+  document.getElementById('tab-assign').className = 'nav-btn' + (t === 'assign' ? ' active' : '');
+  document.getElementById('view-board').style.display = t === 'board' ? '' : 'none';
+  document.getElementById('view-assign').style.display = t === 'assign' ? '' : 'none';
+  if (t === 'assign') renderAssignView();
+}
+
+function filteredCases() {
+  const q = (document.getElementById('search')?.value || '').toLowerCase();
+  const fl = document.getElementById('filter-lawyer')?.value || '';
+  const ft = document.getElementById('filter-type')?.value || '';
+  return allCases.filter(c =>
+    (!q || c.client.includes(q) || (c.case_num||'').toLowerCase().includes(q) || (c.lawyer||'').includes(q)) &&
+    (!fl || c.lawyer === fl) && (!ft || c.type === ft)
+  );
+}
+
+function updateFilters() {
+  const ls = document.getElementById('filter-lawyer');
+  const ts = document.getElementById('filter-type');
+  if (!ls || !ts) return;
+  const curL = ls.value, curT = ts.value;
+  ls.innerHTML = '<option value="">全部律師</option>' + LAWYERS.map(l => `<option value="${l}"${curL===l?' selected':''}>${l}</option>`).join('');
+  ts.innerHTML = '<option value="">全部案由</option>' + TYPES.map(t => `<option value="${t}"${curT===t?' selected':''}>${t}</option>`).join('');
+}
+
+function cardHtml(c) {
+  const di = getCardDateInfo(c);
+  const urgent = di && isUrgent(di.date);
+  return `<div class="card" onclick="openDetail(${c.id})">
+    <div class="card-top"><div class="card-name">${c.client}</div><div class="card-num">${(c.case_num||'').split('號')[0]}號</div></div>
+    <div class="card-meta">🏛 ${c.court||'—'}</div>
+    <div class="card-row">
+      <span class="tag ${TYPE_CLS[c.type]||'tag-gray'}">${c.type}</span>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">${(c.subs||[]).map(s=>`<span class="tag ${SUB_TAG_CLS[s]||'tag-gray'}">${s}</span>`).join('')}</div>
+    </div>
+    <div class="card-row">
+      <span class="lawyer-label">👤 ${c.lawyer||'未分配'}</span>
+      ${di ? `<span class="${urgent?'date-warn':'date-ok'}" title="${di.label}">📅 ${fmtDate(di.date)}${urgent?' ⚠':''}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderBoard() {
+  updateFilters();
+  const data = filteredCases();
+  const pending = data.filter(c => c.status === 'pending');
+  const active = data.filter(c => c.status === 'active');
+  const closed = data.filter(c => c.status === 'closed');
+  const activeFiltered = filterSub === '全部' ? active : active.filter(c => (c.subs||[]).includes(filterSub));
+  document.getElementById('board').innerHTML = `
+    <div class="col">
+      <div class="col-header">
+        <div class="col-title">📥 待分案 <span class="col-badge badge-pending">${pending.length}</span></div>
+        <button class="add-btn" onclick="openAdd('pending')" aria-label="新增">＋</button>
+      </div>
+      ${pending.length ? pending.map(c=>cardHtml(c)).join('') : '<div class="empty">無待分案件</div>'}
+    </div>
+    <div class="col">
+      <div class="col-header">
+        <div class="col-title">⏳ 進行中 <span class="col-badge badge-active">${active.length}</span></div>
+        <button class="add-btn" onclick="openAdd('active')" aria-label="新增">＋</button>
+      </div>
+      <div class="subtabs">
+        ${['全部',...ALL_SUBS].map(s=>`<button class="subtab${filterSub===s?' active':''}" onclick="setFilterSub('${s}')">${s}${s!=='全部'?' ('+active.filter(c=>(c.subs||[]).includes(s)).length+')':''}</button>`).join('')}
+      </div>
+      ${activeFiltered.length ? activeFiltered.map(c=>cardHtml(c)).join('') : '<div class="empty">無案件</div>'}
+    </div>
+    <div class="col">
+      <div class="col-header">
+        <div class="col-title">✅ 已結案 <span class="col-badge badge-closed">${closed.length}</span></div>
+        <button class="add-btn" onclick="openAdd('closed')" aria-label="新增">＋</button>
+      </div>
+      ${closed.length ? closed.map(c=>cardHtml(c)).join('') : '<div class="empty">無結案案件</div>'}
+    </div>`;
+  renderModal();
+}
+
+function renderStats() {
+  const pts = getLawyerPts();
+  const vals = Object.values(pts);
+  const diff = vals.length ? parseFloat((Math.max(...vals) - Math.min(...vals)).toFixed(1)) : 0;
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-label">待分案</div><div class="stat-num">${allCases.filter(c=>c.status==='pending').length}</div></div>
+    <div class="stat"><div class="stat-label">進行中</div><div class="stat-num">${allCases.filter(c=>c.status==='active').length}</div></div>
+    <div class="stat"><div class="stat-label">已結案</div><div class="stat-num">${allCases.filter(c=>c.status==='closed').length}</div></div>
+    <div class="stat"><div class="stat-label">負擔差距</div><div class="stat-num">${fmtPts(diff)} 點</div></div>`;
+}
+
+function render() {
+  renderStats();
+  if (currentTab === 'board') renderBoard();
+  else renderAssignView();
+}
+
+function setFilterSub(s) { filterSub = s; renderBoard(); }
+function openAdd(status) { showModal = { status }; showDetail = null; renderModal(); }
+function openDetail(id) { showDetail = id; showModal = null; renderModal(); }
+function closeModal() { showModal = null; showDetail = null; document.getElementById('modal-container').innerHTML = ''; }
+
+function subCheckboxesHtml(sel) {
+  return `<div class="multi-check" id="sub-checks">
+    ${ALL_SUBS.map(s=>`<label class="${sel.includes(s)?'checked':''}" id="lbl-${s}" onclick="toggleSubLbl('${s}')">
+      <input type="checkbox" ${sel.includes(s)?'checked':''}>${s}</label>`).join('')}
+  </div>`;
+}
+function toggleSubLbl(s) { document.getElementById('lbl-'+s)?.classList.toggle('checked'); }
+function getSelectedSubs() { return ALL_SUBS.filter(s => document.getElementById('lbl-'+s)?.classList.contains('checked')); }
+
+function renderModal() {
+  const area = document.getElementById('modal-container');
+  if (showModal) {
+    const s = showModal.status;
+    const isActive = s === 'active';
+    area.innerHTML = `<div class="modal-bg" onclick="closeModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>＋ 新增案件</h3>
+        <div class="form-2col">
+          <div class="form-row"><label>當事人 *</label><input id="f-client" placeholder="姓名或公司"></div>
+          <div class="form-row"><label>案號</label><input id="f-casenum" placeholder="112年度民字第001號"></div>
+        </div>
+        <div class="form-2col">
+          <div class="form-row"><label>承辦律師</label><select id="f-lawyer"><option value="">未分配</option>${LAWYERS.map(l=>`<option>${l}</option>`).join('')}</select></div>
+          <div class="form-row"><label>案由</label><select id="f-type">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
+        </div>
+        <div class="form-row"><label>法院 / 股別</label><input id="f-court" placeholder="臺北地方法院民事庭 甲股"></div>
+        <div class="form-row"><label>複雜度</label><select id="f-complexity"><option value="easy">簡單</option><option value="mid" selected>普通</option><option value="hard">複雜</option></select></div>
+        ${isActive ? `<div class="form-row"><label>進行狀態（可多選）</label>${subCheckboxesHtml([])}</div>
+        <div class="form-row"><label>對應日期</label><div class="dates-grid">
+          ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${s}"></div>`).join('')}
+        </div></div>` : ''}
+        <div class="form-row"><label>備註</label><textarea id="f-notes"></textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveAdd('${s}')">儲存</button>
+        </div>
+      </div>
+    </div>`;
+  } else if (showDetail) {
+    const c = allCases.find(x => x.id === showDetail);
+    if (!c) { area.innerHTML = ''; return; }
+    const subs = c.subs || [];
+    const dates = c.dates || {};
+    area.innerHTML = `<div class="modal-bg" onclick="closeModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+          <h3 style="margin:0">${c.client}</h3>
+          <button class="btn" style="padding:3px 8px;font-size:12px" onclick="closeModal()">✕</button>
+        </div>
+        <div style="font-size:11px;color:#888780;margin-bottom:12px">${c.case_num||''}</div>
+        <div class="detail-grid">
+          <div class="detail-item"><label>承辦律師</label><span>${c.lawyer||'未分配'}</span></div>
+          <div class="detail-item"><label>案由</label><span><span class="tag ${TYPE_CLS[c.type]||'tag-gray'}">${c.type}</span></span></div>
+          <div class="detail-item"><label>法院 / 股別</label><span>${c.court||'—'}</span></div>
+          <div class="detail-item"><label>複雜度</label><span>${c.complexity ? DIFF_LABEL[c.complexity] : '—'}</span></div>
+          <div class="detail-item" style="grid-column:1/-1"><label>案件狀態</label><span>${{pending:'待分案',active:'進行中',closed:'已結案'}[c.status]}</span></div>
+        </div>
+        ${c.status==='active' ? `
+        <div class="detail-section">
+          <div class="section-label">進行狀態（可多選）</div>${subCheckboxesHtml(subs)}
+        </div>
+        <div class="detail-section">
+          <div class="section-label">對應日期</div>
+          <div class="dates-grid">
+            ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${s}" value="${dates[s]||''}"></div>`).join('')}
+          </div>
+        </div>` : ''}
+        ${c.notes ? `<div class="detail-section"><div class="section-label">備註</div><div style="font-size:12px;color:#5f5e5a;background:#f5f5f0;border-radius:8px;padding:8px 10px;line-height:1.5">${c.notes}</div></div>` : ''}
+        <div class="detail-section">
+          <div class="section-label">✍️ 開庭筆記</div>
+          <textarea id="f-court-notes" style="width:100%;font-size:12px;padding:8px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;resize:vertical;min-height:80px;line-height:1.5;outline:none">${c.court_notes||''}</textarea>
+        </div>
+        <div class="detail-section">
+          <div class="section-label">📞 電話紀錄</div>
+          <textarea id="f-call-log" style="width:100%;font-size:12px;padding:8px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;resize:vertical;min-height:80px;line-height:1.5;outline:none">${c.call_log||''}</textarea>
+        </div>
+        <div class="modal-actions" style="margin-top:14px">
+          <button class="btn btn-danger" onclick="deleteCase(${c.id})">🗑 刪除</button>
+          <div style="flex:1"></div>
+          <button class="btn" onclick="saveDetail(${c.id})">💾 儲存</button>
+          ${c.status!=='closed' ? `<button class="btn" onclick="moveCaseTo(${c.id},'closed')">✅ 結案</button>` : ''}
+          ${c.status==='pending' ? `<button class="btn btn-primary" onclick="gotoAssign(${c.id})">⚖️ 前往分案</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  } else {
+    area.innerHTML = '';
+  }
+}
+
+async function saveAdd(status) {
+  const client = document.getElementById('f-client')?.value.trim();
+  if (!client) { alert('請填寫當事人姓名'); return; }
+  const subs = status === 'active' ? getSelectedSubs() : [];
+  const dates = {};
+  if (status === 'active') ALL_SUBS.forEach(s => { dates[s] = document.getElementById('date-'+s)?.value || ''; });
+  const ok = await createCase({
+    client, case_num: document.getElementById('f-casenum')?.value.trim()||'',
+    lawyer: document.getElementById('f-lawyer')?.value||'',
+    type: document.getElementById('f-type')?.value||'民事',
+    court: document.getElementById('f-court')?.value.trim()||'',
+    status, subs, dates,
+    notes: document.getElementById('f-notes')?.value.trim()||'',
+    complexity: document.getElementById('f-complexity')?.value||'mid',
+    court_notes: '', call_log: '',
+  });
+  if (ok) { showModal = null; document.getElementById('modal-container').innerHTML = ''; }
+}
+
+async function saveDetail(id) {
+  const c = allCases.find(x => x.id === id);
+  if (!c) return;
+  const updates = {
+    court_notes: document.getElementById('f-court-notes')?.value || '',
+    call_log: document.getElementById('f-call-log')?.value || '',
+  };
+  if (c.status === 'active') {
+    updates.subs = getSelectedSubs();
+    updates.dates = {};
+    ALL_SUBS.forEach(s => { updates.dates[s] = document.getElementById('date-'+s)?.value || ''; });
+  }
+  const ok = await updateCase(id, updates);
+  if (ok) { showDetail = null; document.getElementById('modal-container').innerHTML = ''; }
+}
+
+async function moveCaseTo(id, newStatus) {
+  const updates = { status: newStatus };
+  if (newStatus === 'closed') updates.subs = [];
+  if (newStatus === 'active') { updates.subs = []; updates.dates = {}; }
+  const ok = await updateCase(id, updates);
+  if (ok) { showDetail = null; document.getElementById('modal-container').innerHTML = ''; }
+}
+
+function gotoAssign(caseId) {
+  closeModal(); setTab('assign');
+  setTimeout(() => {
+    const sel = document.getElementById('f-pick-case');
+    if (sel) sel.value = String(caseId);
+    renderAssignView();
+  }, 60);
+}
+
+function renderAssignView() {
+  const pts = getLawyerPts();
+  const suggested = suggestedLawyer(pts);
+  const mx = Math.max(...Object.values(pts), 1);
+  const n = new Date();
+  document.getElementById('month-label').textContent = `${n.getFullYear()} 年 ${n.getMonth()+1} 月 · 負擔統計`;
+
+  document.getElementById('burden-grid').innerHTML = LAWYERS.map(l => {
+    const p = pts[l];
+    const isL = l === suggested;
+    const barPct = Math.round((p / mx) * 100);
+    const lCases = allCases.filter(c => c.status==='active' && c.lawyer===l && c.complexity);
+    const lawyerColors = {'陳大明':['#E6F1FB','#0C447C'],'林美玲':['#E1F5EE','#085041'],'王志豪':['#FAEEDA','#633806'],'張雅婷':['#EEEDFE','#3C3489']};
+    const [bg, fg] = lawyerColors[l] || ['#F1EFE8','#444441'];
+    return `<div class="burden-card${isL?' lightest':''}">
+      <div class="avatar" style="background:${bg};color:${fg}">${l[0]}</div>
+      <div style="font-size:13px;font-weight:600;color:#2c2c2a;margin-bottom:1px">${l}</div>
+      <div style="font-size:11px;color:#888780;margin-bottom:6px">${fmtPts(p)} 點 · ${lCases.length} 件</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${barPct}%;background:${isL?'#1D9E75':'#185FA5'}"></div></div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">
+        ${lCases.filter(c=>c.complexity==='easy').length?`<span class="pill pill-easy">簡單×${lCases.filter(c=>c.complexity==='easy').length}</span>`:''}
+        ${lCases.filter(c=>c.complexity==='mid').length?`<span class="pill pill-mid">普通×${lCases.filter(c=>c.complexity==='mid').length}</span>`:''}
+        ${lCases.filter(c=>c.complexity==='hard').length?`<span class="pill pill-hard">複雜×${lCases.filter(c=>c.complexity==='hard').length}</span>`:''}
+      </div>
+      ${isL?`<div class="next-badge">→ 建議分配</div>`:''}
+    </div>`;
+  }).join('');
+
+  const diff = document.getElementById('f-diff')?.value || 'mid';
+  document.getElementById('assign-suggest').innerHTML = `
+    <div class="suggest-pill">💡 建議分給 <strong style="margin:0 3px">${suggested}</strong>（${fmtPts(pts[suggested])} 點），分案後達 ${fmtPts(pts[suggested]+DIFF_PTS[diff])} 點</div>`;
+
+  const pendingCases = allCases.filter(c => c.status === 'pending');
+  const pickSel = document.getElementById('f-pick-case');
+  if (pickSel) {
+    const cur = pickSel.value;
+    pickSel.innerHTML = '<option value="">-- 選擇待分案案件 --</option>' +
+      pendingCases.map(c => `<option value="${c.id}"${String(cur)===String(c.id)?' selected':''}>${c.client}（${c.type}）</option>`).join('');
+  }
+  const lSel = document.getElementById('f-assign-lawyer');
+  if (lSel) {
+    const cur = lSel.value;
+    lSel.innerHTML = '<option value="">自動推薦</option>' +
+      LAWYERS.map(l => `<option value="${l}"${cur===l?' selected':''}>${l}（${fmtPts(pts[l])} 點）</option>`).join('');
+  }
+
+  const log = loadLog();
+  const tbody = document.getElementById('assign-log');
+  if (!log.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty">本月尚無分案紀錄</div></td></tr>`; }
+  else {
+    const lawyerColors = {'陳大明':['#E6F1FB','#0C447C'],'林美玲':['#E1F5EE','#085041'],'王志豪':['#FAEEDA','#633806'],'張雅婷':['#EEEDFE','#3C3489']};
+    tbody.innerHTML = [...log].reverse().map((entry, i) => {
+      const [bg, fg] = lawyerColors[entry.lawyer] || ['#F1EFE8','#444441'];
+      return `<tr>
+        <td style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${entry.client}</td>
+        <td><span class="pill ${DIFF_CLS[entry.diff]||''}">${DIFF_LABEL[entry.diff]||entry.diff}</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:20px;height:20px;border-radius:50%;background:${bg};color:${fg};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600">${entry.lawyer[0]}</span>${entry.lawyer}</span></td>
+        <td style="color:#888780">${fmtTime(entry.ts)}</td>
+        <td><button style="background:none;border:none;cursor:pointer;color:#888780;font-size:14px" onclick="removeLog(${log.length-1-i})">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+async function doAssign() {
+  const caseId = parseInt(document.getElementById('f-pick-case')?.value);
+  if (!caseId) { alert('請選擇一個待分案案件'); return; }
+  const diff = document.getElementById('f-diff')?.value || 'mid';
+  const pts = getLawyerPts();
+  const manualLawyer = document.getElementById('f-assign-lawyer')?.value;
+  const lawyer = manualLawyer || suggestedLawyer(pts);
+  const ok = await updateCase(caseId, { status:'active', subs:[], dates:{}, lawyer, complexity:diff });
+  if (ok) {
+    const c = allCases.find(x => x.id === caseId);
+    const log = loadLog();
+    log.push({ client: c?.client || '', diff, lawyer, ts: Date.now() });
+    saveLog(log);
+    renderAssignView(); renderStats();
+  }
+}
+
+function removeLog(idx) { const log = loadLog(); log.splice(idx, 1); saveLog(log); renderAssignView(); }
+function resetMonth() { if (!confirm('確定重置本月分案紀錄？')) return; localStorage.removeItem(MONTH_KEY); renderAssignView(); }
+
+document.addEventListener('change', e => { if (e.target.id === 'f-diff') renderAssignView(); });
+
+loadCases();
+</script>
+</body>
+</html>
