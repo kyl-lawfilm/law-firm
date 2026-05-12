@@ -174,6 +174,8 @@ const DIFF_PTS = {easy:1,mid:1.5,hard:2};
 const DIFF_CLS = {easy:'pill-easy',mid:'pill-mid',hard:'pill-hard'};
 const TYPE_CLS = {'民事':'tag-blue','刑事':'tag-red','行政':'tag-amber','家事':'tag-teal','商事':'tag-gray'};
 const ALL_SUBS = ['待撰狀','待庭期','待判決'];
+const SUB_KEY = {'待撰狀':'sub1','待庭期':'sub2','待判決':'sub3'};
+const SUB_ID = {'待撰狀':'lbl-sub1','待庭期':'lbl-sub2','待判決':'lbl-sub3'};
 const SUB_DATE_LABEL = {'待撰狀':'預計出狀日','待庭期':'下次開庭日','待判決':'判決日期'};
 const SUB_TAG_CLS = {'待撰狀':'tag-amber','待庭期':'tag-blue','待判決':'tag-teal'};
 const now = new Date();
@@ -350,12 +352,11 @@ function closeModal() { showModal = null; showDetail = null; document.getElement
 
 function subCheckboxesHtml(sel) {
   return `<div class="multi-check" id="sub-checks">
-    ${ALL_SUBS.map(s=>`<label class="${sel.includes(s)?'checked':''}" id="lbl-${s}" onclick="toggleSubLbl('${s}')">
-      <input type="checkbox" ${sel.includes(s)?'checked':''}>${s}</label>`).join('')}
+    ${ALL_SUBS.map(s=>`<label class="${sel.includes(s)?'checked':''}" id="lbl-${SUB_KEY[s]}" onclick="toggleSubLbl('${SUB_KEY[s]}')"><input type="checkbox" ${sel.includes(s)?'checked':''}>${s}</label>`).join('')}
   </div>`;
 }
-function toggleSubLbl(s) { document.getElementById('lbl-'+s)?.classList.toggle('checked'); }
-function getSelectedSubs() { return ALL_SUBS.filter(s => document.getElementById('lbl-'+s)?.classList.contains('checked')); }
+function toggleSubLbl(k) { document.getElementById('lbl-'+k)?.classList.toggle('checked'); }
+function getSelectedSubs() { return ALL_SUBS.filter(s => document.getElementById('lbl-'+SUB_KEY[s])?.classList.contains('checked')); }
 
 function renderModal() {
   const area = document.getElementById('modal-container');
@@ -377,7 +378,7 @@ function renderModal() {
         <div class="form-row"><label>複雜度</label><select id="f-complexity"><option value="easy">簡單</option><option value="mid" selected>普通</option><option value="hard">複雜</option></select></div>
         ${isActive ? `<div class="form-row"><label>進行狀態（可多選）</label>${subCheckboxesHtml([])}</div>
         <div class="form-row"><label>對應日期</label><div class="dates-grid">
-          ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${s}"></div>`).join('')}
+          ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${SUB_KEY[s]}"></div>`).join('')}
         </div></div>` : ''}
         <div class="form-row"><label>備註</label><textarea id="f-notes"></textarea></div>
         <div class="modal-actions">
@@ -412,7 +413,7 @@ function renderModal() {
         <div class="detail-section">
           <div class="section-label">對應日期</div>
           <div class="dates-grid">
-            ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${s}" value="${dates[s]||''}"></div>`).join('')}
+            ${ALL_SUBS.map(s=>`<div class="date-row"><span class="date-row-label">${SUB_DATE_LABEL[s]}</span><input type="date" id="date-${SUB_KEY[s]}" value="${dates[s]||''}" ></div>`).join('')}
           </div>
         </div>` : ''}
         ${c.notes ? `<div class="detail-section"><div class="section-label">備註</div><div style="font-size:12px;color:#5f5e5a;background:#f5f5f0;border-radius:8px;padding:8px 10px;line-height:1.5">${c.notes}</div></div>` : ''}
@@ -443,7 +444,7 @@ async function saveAdd(status) {
   if (!client) { alert('請填寫當事人姓名'); return; }
   const subs = status === 'active' ? getSelectedSubs() : [];
   const dates = {};
-  if (status === 'active') ALL_SUBS.forEach(s => { dates[s] = document.getElementById('date-'+s)?.value || ''; });
+  if (status === 'active') ALL_SUBS.forEach(s => { dates[s] = document.getElementById('date-'+SUB_KEY[s])?.value || ''; });
   const ok = await createCase({
     client, case_num: document.getElementById('f-casenum')?.value.trim()||'',
     lawyer: document.getElementById('f-lawyer')?.value||'',
@@ -467,7 +468,7 @@ async function saveDetail(id) {
   if (c.status === 'active') {
     updates.subs = getSelectedSubs();
     updates.dates = {};
-    ALL_SUBS.forEach(s => { updates.dates[s] = document.getElementById('date-'+s)?.value || ''; });
+    ALL_SUBS.forEach(s => { updates.dates[s] = document.getElementById('date-'+SUB_KEY[s])?.value || ''; });
   }
   const ok = await updateCase(id, updates);
   if (ok) { showDetail = null; document.getElementById('modal-container').innerHTML = ''; }
