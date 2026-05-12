@@ -351,12 +351,16 @@ function openDetail(id) { showDetail = id; showModal = null; renderModal(); }
 function closeModal() { showModal = null; showDetail = null; document.getElementById('modal-container').innerHTML = ''; }
 
 function subCheckboxesHtml(sel) {
-  return `<div class="multi-check" id="sub-checks">
-    ${ALL_SUBS.map(s=>`<label class="${sel.includes(s)?'checked':''}" id="lbl-${SUB_KEY[s]}" onclick="toggleSubLbl('${SUB_KEY[s]}')"><input type="checkbox" ${sel.includes(s)?'checked':''}>${s}</label>`).join('')}
-  </div>`;
+  var items = ALL_SUBS.map(function(s) {
+    var k = SUB_KEY[s];
+    var checked = sel.includes(s);
+    return '<label class="' + (checked?'checked':'') + '" id="lbl-' + k + '" onclick="toggleSubLbl(\'' + k + '\')">'
+      + '<input type="checkbox" ' + (checked?'checked':'') + '>' + s + '</label>';
+  }).join('');
+  return '<div class="multi-check" id="sub-checks">' + items + '</div>';
 }
-function toggleSubLbl(k) { document.getElementById('lbl-'+k)?.classList.toggle('checked'); }
-function getSelectedSubs() { return ALL_SUBS.filter(s => document.getElementById('lbl-'+SUB_KEY[s])?.classList.contains('checked')); }
+function toggleSubLbl(k) { var el=document.getElementById('lbl-'+k); if(el) el.classList.toggle('checked'); }
+function getSelectedSubs() { return ALL_SUBS.filter(function(s){ return document.getElementById('lbl-'+SUB_KEY[s])&&document.getElementById('lbl-'+SUB_KEY[s]).classList.contains('checked'); }); }
 
 function renderModal() {
   const area = document.getElementById('modal-container');
